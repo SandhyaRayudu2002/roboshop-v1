@@ -1,9 +1,9 @@
 #!/bin/bash
 
-ami_id = "ami-0055977a6e828a4f4"
-instance_type = "t3.micro"
-domain_name = "sandhya.com"
-hosted_zone_id = "Z08101563NNCX0VHGCCRX"
+ami_id = "$ami_id"
+instance_type = "$instance_type"
+domain_name = "$domain_name"
+hosted_zone_id = "$hosted_zone_id"
 
 
 for instance in $@
@@ -43,7 +43,7 @@ do
         "Changes": [
         {
         "Action": "UPSERT",
-        "ResourceRecordSet": {
+        "ResoursceRecordSet": {
         "Name": "$r53_record_name",
         "Type": "A",
         "TTL": 1,
@@ -58,4 +58,4 @@ do
         }'
 
 
-    done
+    done 
