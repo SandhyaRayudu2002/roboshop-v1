@@ -18,6 +18,10 @@ do
 	    --query 'Instances[0].InstanceId' \
         --output text
      )
-       echo "$instance ID: $instance_id"       
+       echo "$instance ID: $instance_id"
+
+       if 
+       [$instance !="frontend"]; then
+      
 
 done
