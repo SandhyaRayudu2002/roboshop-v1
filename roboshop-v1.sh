@@ -9,15 +9,23 @@ for instance in "$@"
 do
     echo "Creating instance: $instance"
 
+  
     instance_id=$(aws ec2 run-instances \
+        --region us-east-1 \
         --image-id "$ami_id" \
         --instance-type "$instance_type" \
-        --security-group-ids "$(aws ec2 describe-security-groups --group-names "roboshop-common" "roboshop-$instance" --query 'SecurityGroups[].GroupId' --output text | tr '\t' ',')" \
+        --security-groups "roboshop-common" "roboshop-$instance" \
         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=roboshop-$instance}]" \
         --query 'Instances[0].InstanceId' \
-        --output text)
+        --output text) || continue
+
+    if [ -z "$instance_id" ] || [ "$instance_id" = "None" ]; then
+        echo "ERROR: Instance creation failed for $instance"
+        continue
+    fi
 
     echo "$instance ID: $instance_id"
+
 
     if [ "$instance" != "frontend" ]; then
         ip=$(aws ec2 describe-instances \
