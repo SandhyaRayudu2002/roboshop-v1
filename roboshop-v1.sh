@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 ami_id="ami-0055977a6e828a4f4"
@@ -13,11 +12,10 @@ do
     instance_id=$(aws ec2 run-instances \
         --image-id "$ami_id" \
         --instance-type "$instance_type" \
-        --security-groups "roboshop-common" "roboshop-$instance" \
+        --security-group-ids "$(aws ec2 describe-security-groups --group-names "roboshop-common" "roboshop-$instance" --query 'SecurityGroups[].GroupId' --output text | tr '\t' ',')" \
         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=roboshop-$instance}]" \
         --query 'Instances[0].InstanceId' \
-        --output text
-    )
+        --output text)
 
     echo "$instance ID: $instance_id"
 
@@ -33,7 +31,7 @@ do
             --output text)
     fi
 
-        r53_record="${instance}.${domain_name}"
+    r53_record_name="${instance}.${domain_name}"
     echo "IP address: $ip"
     echo "DNS record: ${r53_record_name}"
 
@@ -47,7 +45,7 @@ do
                     \"ResourceRecordSet\": {
                         \"Name\": \"${r53_record_name}\",
                         \"Type\": \"A\",
-                        \"TTL\":1,
+                        \"TTL\": 1,
                         \"ResourceRecords\": [
                             {
                                 \"Value\": \"$ip\"
