@@ -33,10 +33,9 @@ do
             --output text)
     fi
 
-    r53_record_name="$instance.$domain_name"
-
+        r53_record="${instance}.${domain_name}"
     echo "IP address: $ip"
-    echo "DNS record: $r53_record_name"
+    echo "DNS record: ${r53_record_name}"
 
     aws route53 change-resource-record-sets \
         --hosted-zone-id "$hosted_zone_id" \
@@ -46,7 +45,7 @@ do
                 {
                     \"Action\": \"UPSERT\",
                     \"ResourceRecordSet\": {
-                        \"Name\": \"$r53_record_name\",
+                        \"Name\": \"${r53_record_name}\",
                         \"Type\": \"A\",
                         \"TTL\":1,
                         \"ResourceRecords\": [
