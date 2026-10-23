@@ -48,7 +48,7 @@ do
                     \"ResourceRecordSet\": {
                         \"Name\": \"$r53_record_name\",
                         \"Type\": \"A\",
-                        \"TTL\": 300,
+                        \"TTL\":1,
                         \"ResourceRecords\": [
                             {
                                 \"Value\": \"$ip\"
