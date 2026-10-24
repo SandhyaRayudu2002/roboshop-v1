@@ -69,19 +69,3 @@ validate $? "Enabling RabbitMQ server"
 systemctl start rabbitmq-server
 validate $? "Starting RabbitMQ server"
 
-# Verify service
-systemctl is-active --quiet rabbitmq-server
-validate $? "Checking RabbitMQ service"
-
-# Create Roboshop user only if it doesn't exist
-if ! rabbitmqctl list_users | awk '{print $1}' | grep -qx "roboshop"; then
-    rabbitmqctl add_user roboshop 'roboshop123'
-    validate $? "Creating RabbitMQ user"
-else
-    echo "$(timestamp) [INFO] RabbitMQ user already exists; skipping" | tee -a "$logs_file"
-fi
-
-rabbitmqctl set_permissions -p / roboshop ".*" ".*" ".*"
-validate $? "Setting RabbitMQ permissions"
-
-echo "$(timestamp) [INFO] ==== Script completed successfully =====" | tee -a "$logs_file"
