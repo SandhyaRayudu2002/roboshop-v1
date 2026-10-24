@@ -44,12 +44,5 @@ validate $? "Installing MySQL server"
 systemctl enable mysqld &>> "$LOGS_FILE"
 validate $? "Enabling MySQL service"
 
-systemctl start mysqld &>> "$LOGS_FILE"
-validate $? "Starting MySQL service"
 
-mysql_secure_installation --set-root-pass 'RoboShop@1' &>> "$LOGS_FILE"
-validate $? "Setting up MySQL root password"
-
-echo "$(timestamp) [INFO] Script completed in ${SECONDS} seconds" | tee -a "$LOGS_FILE"
-echo "$(timestamp) [INFO] ==== Script completed Execution ====" | tee -a "$LOGS_FILE"
  
