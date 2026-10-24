@@ -1,76 +1,106 @@
 #!/bin/bash
 
-user_id=$(id -u)
-logs_folder="/var/log/roboshop"
-logs_file="${logs_folder}/${0}.log"
-domain_name="daws92s.store"
-scripts_dir=$(dirname "$(realpath "$0")")
+USER_ID=$(id -u)
+LOGS_FOLDER="/var/log/roboshop"
+LOGS_FILE="${LOGS_FOLDER}/04-user.sh.log"
+DOMAIN_NAME="daws92s.store"
+SCRIPTS_DIR=$(dirname "$(realpath "$0")")
+
 R="\e[31m"
 G="\e[32m"
 Y="\e[33m"
 N="\e[0m"
 
-if [ $user_id -ne 0 ]; then
-    echo "Please run this script with sudo access.."
+if [ "$USER_ID" -ne 0 ]; then
+    echo "Please run this script with sudo access."
     exit 1
 fi
 
-mkdir -p $logs_folder
+mkdir -p "$LOGS_FOLDER" || exit 1
 
-timestamp(){
-    date "+%F %T" 
+timestamp() {
+    date "+%F %T"
 }
 
-validate(){
-    if [ $1 -ne 0 ]; then
-        echo -e "$(timestamp) [ERROR] ${2}..${R}FAILED${N}" | tee -a $logs_file
+validate() {
+    local status="$1"
+    local message="$2"
+
+    if [ "$status" -ne 0 ]; then
+        echo -e "$(timestamp) [ERROR] ${message}...${R}FAILED${N}" | tee -a "$LOGS_FILE"
         exit 1
     else
-        echo -e "$(timestamp) [INFO] ${2}..${G}SUCCESS${N}" | tee -a $logs_file
+        echo -e "$(timestamp) [INFO] ${message}...${G}SUCCESS${N}" | tee -a "$LOGS_FILE"
     fi
 }
 
-echo "$(timestamp) [INFO] ==== Script started Execution =====" | tee -a $logs_file
+echo "$(timestamp) [INFO] ==== Script started execution ====" | tee -a "$LOGS_FILE"
 
-dnf module disable nodejs -y &>> $logs_file
-dnf module enable nodejs:24 -y &>> $logs_file
-dnf install nodejs -y &>> $logs_file
-validate $? "Installing nodejs 24"
+# Install Node.js 24
+dnf module disable nodejs -y &>> "$LOGS_FILE"
+validate "$?" "Disabling Node.js module"
 
-id roboshop &>> $logs_file
-if [ $? -ne 0 ]; then
-    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop &>> $logs_file
-    validate $? "Creating system user"
+dnf module enable nodejs:24 -y &>> "$LOGS_FILE"
+validate "$?" "Enabling Node.js 24 module"
+
+dnf install nodejs -y &>> "$LOGS_FILE"
+validate "$?" "Installing Node.js 24"
+
+# Create roboshop user if missing
+if id roboshop &>> "$LOGS_FILE"; then
+    echo "$(timestamp) [INFO] roboshop user already exists; skipping."
 else
-    echo -e "$(timestamp) [INFO] System user roboshop already exist...${Y}SKIPPING${N}"
+    useradd --system --home /app --shell /sbin/nologin \
+        --comment "roboshop system user" roboshop &>> "$LOGS_FILE"
+    validate "$?" "Creating roboshop user"
 fi
 
+# Download application
+curl -fL -o /tmp/user.zip \
+    "https://raw.githubusercontent.com/daws-92s/roboshop-documentation/refs/heads/main/artifacts/user-v4.zip" \
+    &>> "$LOGS_FILE"
+validate "$?" "Downloading user application"
+
+# Extract application
 rm -rf /app
-validate $? "Removing old code"
+validate "$?" "Removing old application"
 
 mkdir -p /app
-validate $? "Creating app directory"
+validate "$?" "Creating application directory"
 
-curl -L -o /tmp/user.zip https://raw.githubusercontent.com/daws-92s/roboshop-documentation/refs/heads/main/artifacts/user-v4.zip &>> $logs_file
-validate $? "Downloading user"
+unzip -oq /tmp/user.zip -d /app &>> "$LOGS_FILE"
+validate "$?" "Extracting user application"
 
-cd /app
-unzip /tmp/user.zip &>> $logs_file
-validate $? "Unzipping user"
+cd /app || exit 1
 
-npm install &>> $logs_file
-validate $? "Installing dependencies"
+npm install &>> "$LOGS_FILE"
+validate "$?" "Installing dependencies"
 
-sed -i "s/DOMAIN_NAME/$domain_name/g" "$scripts_dir/user.service"
-cp "$scripts_dir/user.service" /etc/systemd/system/user.service
+# Check service definition before configuring it
+if [ ! -f "$SCRIPTS_DIR/user.service" ]; then
+    echo "$(timestamp) [ERROR] user.service not found in $SCRIPTS_DIR" | tee -a "$LOGS_FILE"
+    echo "Place the correct user.service file beside this script and run it again."
+    exit 1
+fi
 
-systemctl daemon-reload &>> $logs_file
-systemctl enable user &>> $logs_file
-systemctl start user &>> $logs_file
-validate $? "Starting and enabling user"
+sed "s/DOMAIN_NAME/$DOMAIN_NAME/g" "$SCRIPTS_DIR/user.service" \
+    > /tmp/user.service
+validate "$?" "Configuring user service"
 
-systemctl restart user
-validate $? "Restarting user"
+cp /tmp/user.service /etc/systemd/system/user.service
+validate "$?" "Installing user service"
 
-echo "$(timestamp) [INFO] Script completed in $SECONDS seconds"
-echo "$(timestamp) [INFO] ==== Script completed Execution =====" | tee -a $logs_file
+systemctl daemon-reload &>> "$LOGS_FILE"
+validate "$?" "Reloading systemd"
+
+systemctl enable user &>> "$LOGS_FILE"
+validate "$?" "Enabling user service"
+
+systemctl restart user &>> "$LOGS_FILE"
+validate "$?" "Starting user service"
+
+systemctl is-active --quiet user
+validate "$?" "Checking user service status"
+
+echo "$(timestamp) [INFO] Script completed in ${SECONDS} seconds" | tee -a "$LOGS_FILE"
+echo "$(timestamp) [INFO] ==== Script completed execution ====" | tee -a "$LOGS_FILE"
